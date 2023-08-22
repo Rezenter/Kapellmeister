@@ -17,12 +17,19 @@
 <div>
     <div class="row">
         <p>Beam position control</p>
+        <p id="mirror"></p>
         <div class="col-xs-6 col-sm-6 col-md-6 col-lg-6">
+            <button type="button" class="btn btn-default btn-lg" id="button_connect">
+                connect
+            </button>
+            <button type="button" class="btn btn-default btn-lg" id="button_disconnect">
+                disconnect
+            </button>
             <div class="container text-center">
                 <div class="row">
                     <div class="col"></div>
                     <div class="col">
-                        <button type="button" class="btn btn-default btn-lg" id="move_up">
+                        <button type="button" class="btn btn-default btn-lg" id="button_move_up">
                             up
                         </button>
                     </div>
@@ -31,19 +38,19 @@
                 <div class="row">
                     <div class="col">
                         <div class="col">
-                            <button type="button" class="btn btn-default btn-lg" id="move_left">
+                            <button type="button" class="btn btn-default btn-lg" id="button_move_left">
                                 left
                             </button>
                         </div>
                     </div>
                     <div class="col">
-                        <button type="button" class="btn btn-default btn-lg" id="move_stop">
+                        <button type="button" class="btn btn-default btn-lg" id="button_move_stop">
                             stop
                         </button>
                     </div>
                     <div class="col">
                         <div class="col">
-                            <button type="button" class="btn btn-default btn-lg" id="move_right">
+                            <button type="button" class="btn btn-default btn-lg" id="button_move_right">
                                 right
                             </button>
                         </div>
@@ -52,7 +59,7 @@
                 <div class="row">
                     <div class="col"></div>
                     <div class="col">
-                        <button type="button" class="btn btn-default btn-lg" id="move_down">
+                        <button type="button" class="btn btn-default btn-lg" id="button_move_down">
                             down
                         </button>
                     </div>
@@ -66,25 +73,94 @@
 
         </div>
         <div class="col-xs-6 col-sm-6 col-md-6 col-lg-6">
-            <label for="next_shot_number">Next shot №:</label><output id="next_shot_number"></output>
-
-            <label for="is_plasma">Is plasma?</label><input type="checkbox" id="is_plasma" checked>
+            status to be implemented
         </div>
     </div>
 </div>
 
 
 <script>
+    function GetURLParameter(sParam) {
+        let sURLVariables = window.location.search.substring(1).split('&');
+        for (let i = 0; i < sURLVariables.length; i++) {
+            let sParameterName = sURLVariables[i].split('=');
+            if (sParameterName[0] === sParam) {
+                return sParameterName[1];
+            }
+        }
+    }
+
+    function Request (req, callback){
+        req['subsystem'] = 'mirror';
+        req['mirror'] = parseInt(GetURLParameter("mirror"));
+        $.post('/api', JSON.stringify(req), callback, 'json');
+    }
+
+    function Connect(){
+        Request({
+                request: 'connect'
+            }
+            , function (resp) {
+                if(!resp.ok){
+                    console.log(resp);
+                    alert(resp.err);
+                }
+            }
+        );
+    }
+
+    function Disconnect(){
+        Request({
+                request: 'disconnect'
+            }
+            , function (resp) {
+                if(!resp.ok){
+                    console.log(resp);
+                    alert(resp.err);
+                }
+            }
+        );
+    }
+
+    MoveUp = function(){
+        Request(
+            {
+                request: 'move',
+                axis: 'vertical',
+                direction: '+'
+            }
+            , function (resp) {
+                if(!resp.ok){
+                    console.log(resp);
+                    alert(resp.err);
+                }
+            }
+        );
+    }
+
+
+
     ConnectControls = function () {
-        console.log("connecting...");
-        $('#ADC_reboot_button').on('click', this, {});
-        //$('#ADC_arm_button').on('click', this, this.ADCArm);
-        //$('#ADC_disarm_button').on('click', this, this.ADCDisarm);
+        $('#button_move_up').on('click', this, MoveUp);
+        /*
+        $('#button_move_left').on('click', this, MoveLeft);
+        $('#button_move_down').on('click', this, MoveDown);
+        $('#button_move_right').on('click', this, MoveRight);
+        $('#button_move_stop').on('click', this, MoveStop);
+        */
+        $('#button_connect').on('click', this, Connect);
+        $('#button_disconnect').on('click', this, Disconnect);
     }
 
     $(document).ready(
         function () {
             console.log('loaded, running JS');
+
+            let sPageURL = window.location.search.substring(1);
+            if(sPageURL === ''){
+                window.history.replaceState(null, null, "?mirror=1");
+            }
+            $('#mirror').html("Selected mirror " + GetURLParameter("mirror"));
 
             ConnectControls();
         }

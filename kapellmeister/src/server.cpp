@@ -1,7 +1,7 @@
 #include "mongoose.h"
-#include <iostream>
 #include <cstring>
 #include <string>
+#include "RequestHandler.h"
 
 const char* root = "../html";
 struct mg_http_serve_opts opts = {
@@ -10,11 +10,14 @@ struct mg_http_serve_opts opts = {
 
 static void fn(struct mg_connection *c, int ev, void *ev_data, void *fn_data) {
     if (ev == MG_EV_HTTP_MSG) {
-        struct mg_http_message *hm = (struct mg_http_message *) ev_data;
-        if (mg_http_match_uri(hm, "/api/hello")) {              // On /api/hello requests,
-            mg_http_reply(c, 200, "", "{%m:%d}\n",
-                          MG_ESC("status"), 1);                   // Send dynamic JSON response
-        } else {                                                // For all other URIs,
+        auto *hm = (struct mg_http_message *) ev_data;
+        if (mg_http_match_uri(hm, "/api")) {
+            char* request = new char[hm->body.len + 1];
+            std::memcpy(request, hm->body.ptr, hm->body.len);
+            request[hm->body.len] = '\0';
+            mg_http_reply(c, 200, "Content-Type: application/json\r\n",
+                          "%s", handleRequest(request).c_str());
+        } else {
             char * path;
             if (hm->uri.ptr[hm->uri.len - 1] == '/') {
                 path = new char [strlen(root) + hm->uri.len + strlen("index.html") + 1]();
