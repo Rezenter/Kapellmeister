@@ -66,20 +66,81 @@
                     <div class="col"></div>
                 </div>
             </div>
-
-
-
-
-
         </div>
         <div class="col-xs-6 col-sm-6 col-md-6 col-lg-6">
-            status to be implemented
+            status
+            <div class="container text-center">
+                <div class="row">
+                    <div class="col">name:</div>
+                    <div class="col">Axis 1</div>
+                    <div class="col">Axis 2</div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        is calibrated
+                    </div>
+                    <div class="col">
+                        <p id="calibrated_1">.</p>
+                    </div>
+                    <div class="col">
+                        <p id="calibrated_2">.</p>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">is +</div>
+                    <div class="col"><p id="counterclockwise_1">.</p></div>
+                    <div class="col"><p id="counterclockwise_2">.</p></div>
+                </div>
+                <div class="row">
+                    <div class="col">stopped</div>
+                    <div class="col"><p id="stopped_1">.</p></div>
+                    <div class="col"><p id="stopped_2">.</p></div>
+                </div>
+                <div class="row">
+                    <div class="col">limit 1</div>
+                    <div class="col"><p id="limit_1_1">.</p></div>
+                    <div class="col"><p id="limit_1_2">.</p></div>
+                </div>
+                <div class="row">
+                    <div class="col">limit 2</div>
+                    <div class="col"><p id="limit_2_1">.</p></div>
+                    <div class="col"><p id="limit_2_2">.</p></div>
+                </div>
+                <div class="row">
+                    <div class="col">position</div>
+                    <div class="col"><p id="coordinate_1"></p></div>
+                    <div class="col"><p id="coordinate_2"></p></div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
 
 <script>
+    let status_timer = null;
+    let status = null;
+    selectors = {
+        state:{
+            axis1:{
+                calibrated: $('#calibrated_1'),
+                counterclockwise: $('#counterclockwise_1'),
+                stopped: $('#stopped_1'),
+                limit_1: $('#limit_1_1'),
+                limit_2: $('#limit_2_1'),
+                coordinate: $('#coordinate_1')
+            },
+            axis2:{
+                calibrated: $('#calibrated_2'),
+                counterclockwise: $('#counterclockwise_2'),
+                stopped: $('#stopped_2'),
+                limit_1: $('#limit_1_2'),
+                limit_2: $('#limit_2_2'),
+                coordinate: $('#coordinate_2')
+            }
+        }
+    }
+
     function GetURLParameter(sParam) {
         let sURLVariables = window.location.search.substring(1).split('&');
         for (let i = 0; i < sURLVariables.length; i++) {
@@ -96,6 +157,87 @@
         $.post('/api', JSON.stringify(req), callback, 'json');
     }
 
+    function Status(){
+        Request({
+                request: 'status'
+            }
+            , function (resp) {
+                if(!resp.ok){
+                    console.log(resp);
+                    alert(resp.err);
+                }else{
+                    status = resp;
+                }
+            }
+        );
+    }
+
+    function DisplayStatus(){
+        //console.log(status);
+
+        if(status.Axis1.calibrated){
+            selectors.state.axis1.calibrated.css('background-color','green');
+        }else{
+            selectors.state.axis1.calibrated.css('background-color','red');
+        }
+        if(status.Axis1.isCounterclockwise){
+            selectors.state.axis1.counterclockwise.css('background-color','green');
+        }else{
+            selectors.state.axis1.counterclockwise.css('background-color','red');
+        }
+        if(status.Axis1.stopped){
+            selectors.state.axis1.stopped.css('background-color','green');
+        }else{
+            selectors.state.axis1.stopped.css('background-color','red');
+        }
+        if(status.Axis1.limit1){
+            selectors.state.axis1.limit_1.css('background-color','green');
+        }else{
+            selectors.state.axis1.limit_1.css('background-color','red');
+        }
+        if(status.Axis1.limit2){
+            selectors.state.axis1.limit_2.css('background-color','green');
+        }else{
+            selectors.state.axis1.limit_2.css('background-color','red');
+        }
+        selectors.state.axis1.coordinate.html(status.Axis1.coordinate);
+
+        if(status.Axis2.calibrated){
+            selectors.state.axis2.calibrated.css('background-color','green');
+        }else{
+            selectors.state.axis2.calibrated.css('background-color','red');
+        }
+        if(status.Axis2.isCounterclockwise){
+            selectors.state.axis2.counterclockwise.css('background-color','green');
+        }else{
+            selectors.state.axis2.counterclockwise.css('background-color','red');
+        }
+        if(status.Axis2.stopped){
+            selectors.state.axis2.stopped.css('background-color','green');
+        }else{
+            selectors.state.axis2.stopped.css('background-color','red');
+        }
+        if(status.Axis2.limit1){
+            selectors.state.axis2.limit_1.css('background-color','green');
+        }else{
+            selectors.state.axis2.limit_1.css('background-color','red');
+        }
+        if(status.Axis2.limit2){
+            selectors.state.axis2.limit_2.css('background-color','green');
+        }else{
+            selectors.state.axis2.limit_2.css('background-color','red');
+        }
+        selectors.state.axis2.coordinate.html(status.Axis2.coordinate);
+    }
+
+    function setTimer(){
+        let delay = 1000;
+        status_timer = setTimeout(function request(){
+            Status();
+            status_timer = setTimeout(request.bind(this), delay);
+            DisplayStatus();
+        }.bind(this), delay);
+    }
     function Connect(){
         Request({
                 request: 'connect'
@@ -104,12 +246,15 @@
                 if(!resp.ok){
                     console.log(resp);
                     alert(resp.err);
+                }else{
+                    setTimer();
                 }
             }
         );
     }
 
     function Disconnect(){
+        clearTimeout(status_timer);
         Request({
                 request: 'disconnect'
             }

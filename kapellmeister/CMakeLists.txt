@@ -21,5 +21,5 @@ include_directories(${CMAKE_SOURCE_DIR} include)
 
 add_executable(kapellmeister src/server.cpp
         src/mongoose.c
-        include/mongoose.h src/RequestHandler.cpp include/RequestHandler.h include/json.hpp src/Mirror.cpp include/Mirror.h)
+        include/mongoose.h src/RequestHandler.cpp include/RequestHandler.h include/json.hpp src/Kapellmeister.cpp include/Kapellmeister.h)
 target_link_libraries(kapellmeister ws2_32)

@@ -26,12 +26,12 @@ class Axis: public AccelStepper{
   public:
   const uint8_t limit1Pin;
   const uint8_t limit2Pin;
-  const uint8_t packetOffset;
+  const uint8_t number;
   bool isCalibrated = false;
   bool counterclockwise = true;
 
   Axis(uint8_t stepPin, uint8_t dirPin, uint8_t limit1Pin, uint8_t limit2Pin, uint8_t number, long position=0):
-      AccelStepper(AccelStepper::DRIVER, stepPin, dirPin), limit1Pin(limit1Pin), limit2Pin(limit2Pin), packetOffset(number * PACKET_HALF_SIZE){
+      AccelStepper(AccelStepper::DRIVER, stepPin, dirPin), limit1Pin(limit1Pin), limit2Pin(limit2Pin), number(number){
     
     this->setMaxSpeed(MAX_SPEED);
     this->setAcceleration(MAX_ACCEL);
@@ -46,13 +46,14 @@ class Axis: public AccelStepper{
   }
 
   void reportStatus(){
-    outBuffer[this->packetOffset] = 0;
-    bitWrite(outBuffer[this->packetOffset], 0, this->isCalibrated);
-    bitWrite(outBuffer[this->packetOffset], 1, this->isRunning());
-    bitWrite(outBuffer[this->packetOffset], 2, digitalRead(this->limit1Pin));
-    bitWrite(outBuffer[this->packetOffset], 3, digitalRead(this->limit2Pin));
-    bitWrite(outBuffer[this->packetOffset], 4, this->counterclockwise);
-    outBuffer[this->packetOffset + 1] = (int16_t)this->currentPosition();
+    outBuffer[this->number * 2] = (int16_t)this->currentPosition();
+    outBuffer[4 + this->number] = 0;
+    bitWrite(outBuffer[4 + this->number], 0, this->isCalibrated);
+    bitWrite(outBuffer[4 + this->number], 1, !this->isRunning());
+    bitWrite(outBuffer[4 + this->number], 2, digitalRead(this->limit1Pin));
+    bitWrite(outBuffer[4 + this->number], 3, digitalRead(this->limit2Pin));
+    bitWrite(outBuffer[4 + this->number], 4, this->counterclockwise);
+    
   }
 };
 

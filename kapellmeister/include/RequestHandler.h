@@ -5,9 +5,9 @@
 #define GTS_CORE_REQUESTHANDLER_H
 
 #include "json.hpp"
-#include "Mirror.h"
+#include "Kapellmeister.h"
 
 std::basic_string<char> handleRequest(char* request_str);
-inline Mirror mirror;
+inline Kapellmeister mirror;
 
 #endif //GTS_CORE_REQUESTHANDLER_H
