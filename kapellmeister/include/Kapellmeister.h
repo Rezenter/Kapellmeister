@@ -86,7 +86,7 @@ struct Axes {
 };
 
 union Reply{
-    uint8_t buffer[6];
+    uint8_t buffer[10];
     Axes status;
 };
 
@@ -97,7 +97,9 @@ public:
     Timer timer;
     struct mg_mgr mgr;
     struct mg_connection *c;
+    bool init = false;
     Reply status;
+    unsigned char outBuffer[6];
 
     Json getStatus(){
         return {
@@ -122,6 +124,10 @@ public:
                 }
         };
     }
+
+    void update();
+    void move(int axis, int speed);
+    void stop();
 };
 
 class Kapellmeister{
@@ -129,9 +135,7 @@ private:
     const static inline char req_arm_10V[] = "\x02\x05\x00\x2c\x02";
     //std::array<std::string, 1> addresses = {"udp://192.168.10.70:8888"};
     inline static Mirror mirror = Mirror();
-    void update(int index);
     static void eventProcessorUDP(struct mg_connection *c, int ev, void *ev_data, void *fn_data);
-    char outBuffer[6];
 
 public:
     Json requestHandler(Json req);

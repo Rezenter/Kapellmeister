@@ -247,6 +247,10 @@
                     console.log(resp);
                     alert(resp.err);
                 }else{
+                    status = resp;
+                    if(status_timer != null){
+                        clearTimeout(status_timer);
+                    }
                     setTimer();
                 }
             }
@@ -272,7 +276,37 @@
             {
                 request: 'move',
                 axis: 'vertical',
-                direction: '+'
+                speed: 100
+            }
+            , function (resp) {
+                if(!resp.ok){
+                    console.log(resp);
+                    alert(resp.err);
+                }
+            }
+        );
+    }
+
+    MoveDown = function(){
+        Request(
+            {
+                request: 'move',
+                axis: 'vertical',
+                speed: -100
+            }
+            , function (resp) {
+                if(!resp.ok){
+                    console.log(resp);
+                    alert(resp.err);
+                }
+            }
+        );
+    }
+
+    MoveStop = function(){
+        Request(
+            {
+                request: 'stop'
             }
             , function (resp) {
                 if(!resp.ok){
@@ -284,14 +318,15 @@
     }
 
 
-
     ConnectControls = function () {
         $('#button_move_up').on('click', this, MoveUp);
+        $('#button_move_down').on('click', this, MoveDown);
+        $('#button_move_stop').on('click', this, MoveStop);
         /*
         $('#button_move_left').on('click', this, MoveLeft);
-        $('#button_move_down').on('click', this, MoveDown);
+
         $('#button_move_right').on('click', this, MoveRight);
-        $('#button_move_stop').on('click', this, MoveStop);
+
         */
         $('#button_connect').on('click', this, Connect);
         $('#button_disconnect').on('click', this, Disconnect);
