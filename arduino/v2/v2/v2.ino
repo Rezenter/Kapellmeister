@@ -15,8 +15,8 @@
 const byte mac[] = {0xDE, 0xAD, 0xB0, 0xEF, 0xFE, 0xED};
 const IPAddress ip(192, 168, 10, 70);
 EthernetUDP Udp;
-#define PACKET_SIZE 6
-#define PACKET_HALF_SIZE 3
+#define PACKET_SIZE 10
+#define PACKET_HALF_SIZE 5
 const unsigned short cmdMask  = 0xE0;
 
 #define localPort 8888      // local port to listen on
@@ -32,12 +32,12 @@ class Axis: public AccelStepper{
   bool isCalibrated = false;
   bool move_speed = false;
 
-
   Axis(uint8_t stepPin, uint8_t dirPin, uint8_t limit1Pin, uint8_t limit2Pin, uint8_t number, long position=0):
       AccelStepper(AccelStepper::DRIVER, stepPin, dirPin), limit1Pin(limit1Pin), limit2Pin(limit2Pin), number(number){
     
     this->setMaxSpeed(MAX_SPEED);
     this->setAcceleration(MAX_ACCEL);
+    this->setMinPulseWidth(1000);
     pinMode(this->limit1Pin, INPUT);
     pinMode(this->limit2Pin, INPUT);
 
@@ -45,28 +45,34 @@ class Axis: public AccelStepper{
   }
 
   void parse(){
-    uint8_t cmd = (inBuffer[this->number * PACKET_HALF_SIZE] & cmdMask) >> 5;
-    uint8_t speed = (inBuffer[this->number * PACKET_HALF_SIZE] & (~cmdMask));
+    uint8_t cmd = 0;
+    memcpy(&cmd, &inBuffer[this->number * PACKET_HALF_SIZE], sizeof(uint8_t));
     switch(cmd){
-      case 0b000: //state
+      case 0b00000000: //state
+
         break;
-      case 0b001: //moveTo
+      case 0b00100000: //moveTo
+        
         break;
-      case 0b010:
-        this->move_speed = true;
-        this->setSpeed(speed);
+      case 0b01000000:
+        {
+          float arg = 0;
+          memcpy(&arg, &inBuffer[this->number * PACKET_HALF_SIZE + 1], sizeof(float));
+
+          this->move_speed = true;
+          this->setSpeed(arg);
+        }
         break;
-      case 0b011:
-        this->move_speed = true;
-        this->setSpeed(-speed);
+      case 0b01100000:
+        //unused
         break;
-      case 0b100:
-        this->setSpeed(0);
+      case 0b10000000:
+        this->setSpeed(0.0);
         this->stop();
         //stop gracefully
         break;
-      case 0b101:
-        this->setSpeed(0);
+      case 0b10100000:
+        this->setSpeed(0.0); //debug
         this->stop();
         this->moveTo(this->currentPosition());
         break;
@@ -77,16 +83,17 @@ class Axis: public AccelStepper{
   }
 
   void reportStatus(){
-    outBuffer[this->number * 2] = (int16_t)this->currentPosition();
-    outBuffer[4 + this->number] = 0;
-    bitWrite(outBuffer[4 + this->number], 0, this->isCalibrated);
+    int32_t pos = this->currentPosition();
+    memcpy(&outBuffer[this->number * sizeof(int32_t)], &pos, sizeof(int32_t));
+    outBuffer[2 * sizeof(int32_t) + this->number] = 0;
+    bitWrite(outBuffer[2 * sizeof(int32_t) + this->number], 0, this->isCalibrated);
     if(!this->isRunning()){
       this->move_speed = false;
     }
-    bitWrite(outBuffer[4 + this->number], 1, !this->isRunning());
-    bitWrite(outBuffer[4 + this->number], 2, digitalRead(this->limit1Pin));
-    bitWrite(outBuffer[4 + this->number], 3, digitalRead(this->limit2Pin));
-    bitWrite(outBuffer[4 + this->number], 4, this->_direction);
+    bitWrite(outBuffer[2 * sizeof(int32_t) + this->number], 1, !this->isRunning());
+    bitWrite(outBuffer[2 * sizeof(int32_t) + this->number], 2, digitalRead(this->limit1Pin));
+    bitWrite(outBuffer[2 * sizeof(int32_t) + this->number], 3, digitalRead(this->limit2Pin));
+    bitWrite(outBuffer[2 * sizeof(int32_t) + this->number], 4, this->_direction);
     
   }
 };
@@ -130,7 +137,6 @@ void setup() {
 void loop() {
   //reconnect ethernet if link went missing
 
-  packetSize = Udp.parsePacket();
   if(axis1.isRunning()){
     if(axis1.move_speed){
       axis1.runSpeed();
@@ -147,6 +153,7 @@ void loop() {
     }
   }
 
+  packetSize = Udp.parsePacket();
   if(Udp.available()){
     // read the packet into packetBuffer
     Udp.read(inBuffer, PACKET_SIZE);

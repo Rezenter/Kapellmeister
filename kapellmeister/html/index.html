@@ -71,7 +71,7 @@
             status
             <div class="container text-center">
                 <div class="row">
-                    <div class="col">name:</div>
+                    <div class="col"></div>
                     <div class="col">Axis 1</div>
                     <div class="col">Axis 2</div>
                 </div>
@@ -317,17 +317,45 @@
         );
     }
 
+    MoveLeft = function(){
+        Request(
+            {
+                request: 'move',
+                axis: 'horizontal',
+                speed: -100
+            }
+            , function (resp) {
+                if(!resp.ok){
+                    console.log(resp);
+                    alert(resp.err);
+                }
+            }
+        );
+    }
+
+    MoveRight = function(){
+        Request(
+            {
+                request: 'move',
+                axis: 'horizontal',
+                speed: 100
+            }
+            , function (resp) {
+                if(!resp.ok){
+                    console.log(resp);
+                    alert(resp.err);
+                }
+            }
+        );
+    }
 
     ConnectControls = function () {
         $('#button_move_up').on('click', this, MoveUp);
         $('#button_move_down').on('click', this, MoveDown);
         $('#button_move_stop').on('click', this, MoveStop);
-        /*
         $('#button_move_left').on('click', this, MoveLeft);
-
         $('#button_move_right').on('click', this, MoveRight);
 
-        */
         $('#button_connect').on('click', this, Connect);
         $('#button_disconnect').on('click', this, Disconnect);
     }

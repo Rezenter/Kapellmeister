@@ -3,6 +3,7 @@
 //
 #include "Kapellmeister.h"
 #include "iostream"
+#include "bit"
 
 void Kapellmeister::eventProcessorUDP(struct mg_connection *c, int ev, void *ev_data, void *fn_data) {
     if (ev == MG_EV_READ) {
@@ -11,7 +12,7 @@ void Kapellmeister::eventProcessorUDP(struct mg_connection *c, int ev, void *ev_
         for(int i = 0; i < c->recv.len; i++){
             //std::cout << (int)c->recv.buf[i] << std::endl;
         }
-        if(c->recv.len == sizeof(Reply)){
+        if(c->recv.len == sizeof(Reply::buffer)){
             memcpy(mirror.status.buffer, c->recv.buf, c->recv.len);
             //store timestamp
         }else{
@@ -78,9 +79,11 @@ Json Kapellmeister::requestHandler(Json req){
             resp = mirror.getStatus();
         }else
         if(req.at("request") == "disconnect"){
-            mirror.timer.stop();
-            mg_mgr_free(&mirror.mgr);
-            mirror.init = false;
+            if(mirror.init){
+                mirror.timer.stop();
+                mg_mgr_free(&mirror.mgr);
+                mirror.init = false;
+            }
             //close connections?
             resp = {
                     {"ok", true}
@@ -104,7 +107,7 @@ Json Kapellmeister::requestHandler(Json req){
                     };
                 }
                 if(req.contains("speed")){
-                    mirror.move(axis, req.at("speed"));
+                    mirror.move(axis, (float)req.at("speed"));
                     resp = {
                             {"ok", true}
                     };
@@ -144,6 +147,7 @@ Json Kapellmeister::requestHandler(Json req){
 void Mirror::update() {
     //check last connection time
 
+
     //if (c == NULL) return;
     this->outBuffer[0] = 0;
     this->outBuffer[1] = 0;
@@ -151,46 +155,48 @@ void Mirror::update() {
     this->outBuffer[3] = 0;
     this->outBuffer[4] = 0;
     this->outBuffer[5] = 0;
-    mg_send(this->c, &outBuffer, 6);
+    this->outBuffer[6] = 0;
+    this->outBuffer[7] = 0;
+    this->outBuffer[8] = 0;
+    this->outBuffer[9] = 0;
+
+    mg_send(this->c, &outBuffer, sizeof outBuffer);
 
     mg_mgr_poll(&this->mgr, 500);
     //std::puts("received or timeout\n");
 }
 
-void Mirror::move(int axis, int speed) {
-    bool dir = (speed < 0);
-
+void Mirror::move(int axis, float speed) {
     this->outBuffer[0] = 0;
     this->outBuffer[1] = 0;
     this->outBuffer[2] = 0;
     this->outBuffer[3] = 0;
     this->outBuffer[4] = 0;
     this->outBuffer[5] = 0;
-    std::cout << speed << " " << (uint8_t)abs(speed) << std::endl;
-    this->outBuffer[axis * 3] = (uint8_t)abs(speed);
-    this->outBuffer[axis * 3] = (this->outBuffer[axis * 3] & ~(1UL << 5)) | (dir << 5);
-    this->outBuffer[axis * 3] = (this->outBuffer[axis * 3] & ~(1UL << 6)) | (1 << 6);
-    this->outBuffer[axis * 3] = (this->outBuffer[axis * 3] & ~(1UL << 7)) | (0 << 7);
+    this->outBuffer[6] = 0;
+    this->outBuffer[7] = 0;
+    this->outBuffer[8] = 0;
+    this->outBuffer[9] = 0;
 
-    mg_send(this->c, &outBuffer, 6);
+    this->outBuffer[axis * 5] = 0b01000000;
+    std::memcpy(&outBuffer[axis * 5 + 1], &speed, sizeof(float));
+
+    mg_send(this->c, &outBuffer, sizeof outBuffer);
     mg_mgr_poll(&this->mgr, 500);
 }
 
 void Mirror::stop() {
-    this->outBuffer[0] = 0;
+    this->outBuffer[0] = 0b10100000;
     this->outBuffer[1] = 0;
     this->outBuffer[2] = 0;
     this->outBuffer[3] = 0;
     this->outBuffer[4] = 0;
-    this->outBuffer[5] = 0;
+    this->outBuffer[5] = 0b10100000;
+    this->outBuffer[6] = 0;
+    this->outBuffer[7] = 0;
+    this->outBuffer[8] = 0;
+    this->outBuffer[9] = 0;
 
-    this->outBuffer[0]  |= (1 << 5);
-    this->outBuffer[0]  |= (0 << 6);
-    this->outBuffer[0]  |= (1 << 7);
-    this->outBuffer[3]  |= (1 << 5);
-    this->outBuffer[3]  |= (0 << 6);
-    this->outBuffer[3]  |= (1 << 7);
-
-    mg_send(this->c, &outBuffer, 6);
+    mg_send(this->c, &outBuffer, sizeof outBuffer);
     mg_mgr_poll(&this->mgr, 500);
 }

@@ -46,8 +46,8 @@ private:
 };
 
 struct Axes {
-    int16_t coordinate_1;
-    int16_t coordinate_2;
+    int32_t coordinate_1;
+    int32_t coordinate_2;
     unsigned char flags_1;
     unsigned char flags_2;
 
@@ -99,7 +99,7 @@ public:
     struct mg_connection *c;
     bool init = false;
     Reply status;
-    unsigned char outBuffer[6];
+    unsigned char outBuffer[10];
 
     Json getStatus(){
         return {
@@ -126,7 +126,7 @@ public:
     }
 
     void update();
-    void move(int axis, int speed);
+    void move(int axis, float speed);
     void stop();
 };
 
